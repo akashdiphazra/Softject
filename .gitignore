@@ -20,7 +20,7 @@
 .Trash-*
 $RECYCLE.BIN/
 .TemporaryItems
-ehthumbs.db
-.clang_format.txt 
+thumbs.db
+.clangd
 compile_flags.txt
 Thumbs.db
