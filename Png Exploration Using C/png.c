@@ -6,8 +6,6 @@
 #include <string.h>
 #include <errno.h>
 
-// Stolen from http://www.libpng.org/pub/png/spec/1.2/PNG-CRCAppendix.html
-
 /* Table of CRCs of all 8-bit messages. */
 unsigned long crc_table[256];
 
