@@ -14,6 +14,7 @@ typedef enum {
   ERR_STACK_OVERFLOW,
   ERR_STACK_UNDERFOLOW,
   ERR_ILLEGAL_INSTRUCTION,
+  ERR_ILLEGAL_OPERAND,
   ERR_ILLEGAL_INST_ACCESS,
   ERR_DIV_BY_ZERO
 } Err;
@@ -28,6 +29,8 @@ const char *err_as_cstr(Err trap) {
     return "ERR_STACK_UNDERFOLOW";
   case ERR_ILLEGAL_INSTRUCTION:
     return "ERR_ILLEGAL_INSTRUCTION";
+  case ERR_ILLEGAL_OPERAND:
+    return "ERR_ILLEGAL_OPERAND";
   case ERR_ILLEGAL_INST_ACCESS:
     return "ERR_ILLEGAL_INST_ACCESS";
   case ERR_DIV_BY_ZERO:
@@ -41,6 +44,7 @@ typedef int64_t Word;
 
 typedef enum {
   INST_PUSH,
+  INST_DUP,
   INST_PLUS,
   INST_MINUS,
   INST_MUL,
@@ -48,13 +52,16 @@ typedef enum {
   INST_JMP,
   INST_JMPIF,
   INST_EQ,
-  INST_HALT
+  INST_HALT,
+  INST_PRINT_DEBUG
 } Inst_Type;
 
 const char *inst_type_as_cstr(Inst_Type type) {
   switch (type) {
   case INST_PUSH:
     return "(INST_PUSH)";
+  case INST_DUP:
+    return "(INST_DUP)";
   case INST_PLUS:
     return "(INST_PLUS)";
   case INST_MINUS:
@@ -71,6 +78,8 @@ const char *inst_type_as_cstr(Inst_Type type) {
     return "(INST_JMPIF)";
   case INST_EQ:
     return "(INST_EQ)";
+  case INST_PRINT_DEBUG:
+    return "(INST_PRINT_DEBUG)";
   default:
     assert(0 && "inst_type_as_cstr: unreachable");
   }
@@ -92,6 +101,8 @@ typedef struct {
 
 #define MAKE_INST_PUSH(value)                                                  \
   { .type = INST_PUSH, .operand = (value) }
+#define MAKE_INST_DUP(addr)                                                    \
+  { .type = INST_DUP, .operand = (addr) }
 #define MAKE_INST_PLUS                                                         \
   { .type = INST_PLUS }
 #define MAKE_INST_MINUS                                                        \
@@ -193,6 +204,30 @@ Err vm_execute_inst(virtualmachine *vm) {
     }
     break;
 
+  case INST_PRINT_DEBUG:
+    if (vm->stack_size < 1) {
+      return ERR_STACK_UNDERFOLOW;
+    }
+    printf("%ld\n", vm->stack[vm->stack_size - 1]);
+    vm->stack_size -= 1;
+    vm->ip += 1;
+    break;
+
+  case INST_DUP:
+    if (vm->stack_size >= VM_STACK_CAPACITY) {
+      return ERR_STACK_UNDERFOLOW;
+    }
+    if (vm->stack_size - inst.operand <= 0) {
+      return ERR_STACK_UNDERFOLOW;
+    }
+    if (inst.operand < 0) {
+      return ERR_ILLEGAL_OPERAND;
+    } else {
+      vm->stack[vm->stack_size] = vm->stack[vm->stack_size - 1 - inst.operand];
+      vm->stack_size += 1;
+      vm->ip += 1;
+    }
+    break;
   default:
     return ERR_ILLEGAL_INSTRUCTION;
   }
@@ -211,8 +246,8 @@ void vm_dump_stack(FILE *stream, const virtualmachine *vm) {
 }
 
 virtualmachine vm = {0};
-Inst program[] = {MAKE_INST_PUSH(0), MAKE_INST_PUSH(1), MAKE_INST_PLUS,
-                  MAKE_INST_JMP(1)};
+Inst program[] = {MAKE_INST_PUSH(0), MAKE_INST_PUSH(1), MAKE_INST_DUP(1),
+                  MAKE_INST_DUP(1),  MAKE_INST_PLUS,    MAKE_INST_JMP(2)};
 
 void load_program_from_memory(virtualmachine *vm, Inst *program,
                               size_t program_size) {
@@ -223,15 +258,15 @@ void load_program_from_memory(virtualmachine *vm, Inst *program,
 
 int main() {
   load_program_from_memory(&vm, program, ARRAY_SIZE(program));
-  vm_dump_stack(stdout, &vm);
-  for (int i = 0; i < VM_EXECUTION_LIMIT && !vm.halt; i++) {
+  // vm_dump_stack(stdout, &vm);
+  for (int i = 0; i < 69; i++) {
     Err err = vm_execute_inst(&vm);
-    vm_dump_stack(stdout, &vm);
     if (err != ERR_OK) {
       fprintf(stderr, "Error %s\n", err_as_cstr(err));
-      vm_dump_stack(stderr, &vm);
+      // vm_dump_stack(stderr, &vm);
       exit(1);
     }
   }
+  vm_dump_stack(stdout, &vm);
   return 0;
 }
