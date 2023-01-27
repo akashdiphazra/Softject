@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,9 +92,9 @@ typedef struct {
 } Inst;
 
 typedef struct {
+  Inst program[VM_PROGRAM_CAPACITY];
   Word stack[VM_STACK_CAPACITY];
   Word stack_size;
-  Inst program[VM_PROGRAM_CAPACITY];
   Word program_size;
   Word ip;
   int halt;
@@ -126,7 +127,7 @@ Err vm_execute_inst(virtualmachine *vm) {
   switch (inst.type) {
   case INST_PUSH:
     if (vm->stack_size >= VM_STACK_CAPACITY) {
-      return ERR_STACK_UNDERFOLOW;
+      return ERR_STACK_OVERFLOW;
     }
     vm->stack[vm->stack_size++] = inst.operand;
     vm->ip += 1;
@@ -215,12 +216,10 @@ Err vm_execute_inst(virtualmachine *vm) {
 
   case INST_DUP:
     if (vm->stack_size >= VM_STACK_CAPACITY) {
+      return ERR_STACK_OVERFLOW;
+    } else if (vm->stack_size - inst.operand <= 0) {
       return ERR_STACK_UNDERFOLOW;
-    }
-    if (vm->stack_size - inst.operand <= 0) {
-      return ERR_STACK_UNDERFOLOW;
-    }
-    if (inst.operand < 0) {
+    } else if (inst.operand < 0) {
       return ERR_ILLEGAL_OPERAND;
     } else {
       vm->stack[vm->stack_size] = vm->stack[vm->stack_size - 1 - inst.operand];
@@ -245,10 +244,6 @@ void vm_dump_stack(FILE *stream, const virtualmachine *vm) {
   }
 }
 
-virtualmachine vm = {0};
-Inst program[] = {MAKE_INST_PUSH(0), MAKE_INST_PUSH(1), MAKE_INST_DUP(1),
-                  MAKE_INST_DUP(1),  MAKE_INST_PLUS,    MAKE_INST_JMP(2)};
-
 void load_program_from_memory(virtualmachine *vm, Inst *program,
                               size_t program_size) {
   assert(program_size < VM_PROGRAM_CAPACITY);
@@ -256,14 +251,70 @@ void load_program_from_memory(virtualmachine *vm, Inst *program,
   vm->program_size = program_size;
 }
 
+void vm_load_program_from_file(virtualmachine *vm, const char *file_path) {
+  FILE *f = fopen(file_path, "rb");
+
+  if (f == NULL) {
+    fprintf(stderr, "ERROR: Could not open file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  if (fseek(f, 0, SEEK_END) < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  long m = ftell(f);
+  if (m < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+
+  assert(m % sizeof(vm->program[0]) == 0);
+  assert((size_t)m <= VM_PROGRAM_CAPACITY * sizeof(vm->program[0]));
+
+  if (fseek(f, 0, SEEK_SET) < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+
+  vm->program_size =
+      fread(vm->program, sizeof(vm->program[0]), m / sizeof(vm->program[0]), f);
+  if (ferror(f)) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  fclose(f);
+}
+
+void vm_save_program_to_file(Inst *program, size_t program_size,
+                             const char *file_path) {
+  FILE *f = fopen(file_path, "wb");
+  if (f == NULL) {
+    fprintf(stderr, "ERROR: Could not open file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  fwrite(program, sizeof(program[0]), program_size, f);
+  if (ferror(f)) {
+    fprintf(stderr, "ERROR: Could not write to file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  fclose(f);
+}
+
+virtualmachine vm = {0};
+
 int main() {
-  load_program_from_memory(&vm, program, ARRAY_SIZE(program));
-  // vm_dump_stack(stdout, &vm);
-  for (int i = 0; i < 69; i++) {
+  vm_load_program_from_file(&vm, "fib.bm");
+  for (int i = 0; i < 69 && !vm.halt; ++i) {
     Err err = vm_execute_inst(&vm);
     if (err != ERR_OK) {
       fprintf(stderr, "Error %s\n", err_as_cstr(err));
-      // vm_dump_stack(stderr, &vm);
       exit(1);
     }
   }
