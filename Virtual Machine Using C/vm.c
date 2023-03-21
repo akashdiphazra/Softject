@@ -1,4 +1,6 @@
+// https://youtu.be/0irYsCYuZws?list=PLpM-Dvs8t0VY73ytTCQqgvgCWttV3m8LM&t=13769
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -44,6 +46,7 @@ const char *err_as_cstr(Err trap) {
 typedef int64_t Word;
 
 typedef enum {
+  INST_NOP = 0,
   INST_PUSH,
   INST_DUP,
   INST_PLUS,
@@ -59,6 +62,8 @@ typedef enum {
 
 const char *inst_type_as_cstr(Inst_Type type) {
   switch (type) {
+  case INST_NOP:
+    return "(INST_NOP)";
   case INST_PUSH:
     return "(INST_PUSH)";
   case INST_DUP:
@@ -125,6 +130,9 @@ Err vm_execute_inst(virtualmachine *vm) {
   Inst inst = vm->program[vm->ip];
 
   switch (inst.type) {
+  case INST_NOP:
+    vm->ip += 1;
+    break;
   case INST_PUSH:
     if (vm->stack_size >= VM_STACK_CAPACITY) {
       return ERR_STACK_OVERFLOW;
@@ -309,15 +317,141 @@ void vm_save_program_to_file(Inst *program, size_t program_size,
 
 virtualmachine vm = {0};
 
-int main() {
-  vm_load_program_from_file(&vm, "fib.bm");
-  for (int i = 0; i < 69 && !vm.halt; ++i) {
-    Err err = vm_execute_inst(&vm);
-    if (err != ERR_OK) {
-      fprintf(stderr, "Error %s\n", err_as_cstr(err));
-      exit(1);
+typedef struct {
+  size_t count;
+  const char *data;
+} String_View;
+
+String_View cstr_as_sv(const char *cstr) {
+  return (String_View){
+      .count = strlen(cstr),
+      .data = cstr,
+  };
+}
+
+String_View sv_trim_left(String_View sv) {
+  size_t i = 0;
+  while (i < sv.count && isspace(sv.data[i])) {
+    i += 1;
+  }
+  return (String_View){.count = sv.count - i, .data = sv.data + i};
+}
+
+String_View sv_trim_right(String_View sv) {
+  size_t i = 0;
+  while (i < sv.count && isspace(sv.data[sv.count - 1 - i])) {
+    i += 1;
+  }
+  return (String_View){.count = sv.count - i, .data = sv.data};
+}
+
+String_View sv_trim(String_View sv) { return sv_trim_right(sv_trim_left(sv)); }
+
+String_View sv_chop_by_delim(String_View *sv, char delim) {
+  size_t i = 0;
+  while (i < sv->count && sv->data[i] != delim) {
+    i += 1;
+  }
+  String_View result = {.count = i, .data = sv->data};
+  if (i < sv->count) {
+    sv->count -= i + 1;
+    sv->data += i + 1;
+  } else {
+    sv->count -= i;
+    sv->data += i;
+  }
+  return result;
+}
+
+int sv_eq(String_View a, String_View b) {
+  if (a.count != b.count) {
+    return 0;
+  } else {
+    return memcmp(a.data, b.data, a.count) == 0;
+  }
+}
+
+int sv_to_int(String_View sv) {
+  int result = 0;
+  for (size_t i = 0; i < sv.count && isdigit(sv.data[i]); ++i) {
+    result = result * 10 + sv.data[i] - '0';
+  }
+  return result;
+}
+
+Inst vm_translate_line(String_View line) {
+  line = sv_trim_left(line);
+  String_View inst_name = sv_chop_by_delim(&line, ' ');
+  if (sv_eq(inst_name, cstr_as_sv("push"))) {
+    line = sv_trim_left(line);
+    int operand = sv_to_int(sv_trim_right(line));
+    return (Inst){.type = INST_PUSH, .operand = operand};
+  } else if (sv_eq(inst_name, cstr_as_sv("dup"))) {
+    line = sv_trim_left(line);
+    int operand = sv_to_int(sv_trim_right(line));
+    return (Inst){.type = INST_DUP, .operand = operand};
+  } else if (sv_eq(inst_name, cstr_as_sv("plus"))) {
+    return (Inst){.type = INST_PLUS};
+  } else if (sv_eq(inst_name, cstr_as_sv("jmp"))) {
+    line = sv_trim_left(line);
+    int operand = sv_to_int(sv_trim_right(line));
+    return (Inst){.type = INST_JMP, .operand = operand};
+  } else {
+    fprintf(stderr, "ERROR: Unknown instruction `%.*s`", (int)inst_name.count,
+            inst_name.data);
+    exit(1);
+  }
+}
+
+size_t vm_translate_source(String_View source, Inst *program,
+                           size_t program_capacity) {
+  size_t program_size = 0;
+  while (source.count > 0) {
+    assert(program_size < program_capacity);
+    String_View line = sv_trim(sv_chop_by_delim(&source, '\n'));
+    if (line.count > 0) {
+      program[program_size++] = vm_translate_line(line);
     }
   }
-  vm_dump_stack(stdout, &vm);
-  return 0;
+  return program_size;
 }
+
+String_View slurp_file(const char *file_path) {
+  FILE *f = fopen(file_path, "r");
+  if (f == NULL) {
+    fprintf(stderr, "ERROR: Could not open file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  if (fseek(f, 0, SEEK_END) < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  long m = ftell(f);
+  if (m < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  char *buffer = malloc(m);
+  if (buffer == NULL) {
+    fprintf(stderr, "ERROR: Could not allocate memory from file %s\n",
+            strerror(errno));
+    exit(1);
+  }
+  if (fseek(f, 0, SEEK_SET) < 0) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  size_t n = fread(buffer, 1, m, f);
+  if (ferror(f)) {
+    fprintf(stderr, "ERROR: Could not read file `%s`: %s\n", file_path,
+            strerror(errno));
+    exit(1);
+  }
+  fclose(f);
+  return (String_View){.count = n, .data = buffer};
+}
+

@@ -1,10 +1,17 @@
 CFLAGS= -Wall -Wextra -Wswitch-enum -std=c11 -pedantic -ggdb
 LIBS=  
 
-all: compile run
+.PHONY: all
 
-compile:  
-	$(CC) $(CFLAGS) -o virtualmachine vm.c $(LIBS)
+all: ebasm vmi run  
+
+ebasm: ebasm.c vm.c  
+	$(CC) $(CFLAGS) -o virtualmachine ebasm.c $(LIBS)
+
+vmi: vmi.c vm.c  
+	$(CC) $(CFLAGS) -o vmi vmi.c $(LIBS)
 
 run:
-	./virtualmachine
+	./virtualmachine fib.ebasm fib.vm && ./vmi fib.vm
+
+
