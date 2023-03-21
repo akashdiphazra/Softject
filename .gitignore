@@ -9,6 +9,9 @@
 *.swp
 *~
 *.log
+*.vm
+vm
+virtualmachine
 
 # OS Generated Files
 .DS_Store
