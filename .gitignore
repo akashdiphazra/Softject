@@ -10,7 +10,7 @@
 *~
 *.log
 *.vm
-vm
+vmi
 virtualmachine
 
 # OS Generated Files
