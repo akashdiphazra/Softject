@@ -1,4 +1,3 @@
-// https://youtu.be/0irYsCYuZws?list=PLpM-Dvs8t0VY73ytTCQqgvgCWttV3m8LM&t=13769
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
