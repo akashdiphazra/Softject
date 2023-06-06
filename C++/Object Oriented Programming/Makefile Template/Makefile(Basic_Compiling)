@@ -1,0 +1,16 @@
+CC=g++ 
+CXXFLAGS=-Wall -Wextra -Werror -std=c++20 -pedantic -ggdb
+MEMORY_SAFE_FLAGS= -fsanitize=address -fno-omit-frame-pointer
+
+all: compile run clean
+
+compile:
+	$(CC) $(CXXFLAGS) -c Player.cpp                # translates frac.cpp into object code, frac.o 
+	$(CC) $(CXXFLAGS) -c main.cpp                # translates main.cpp into object code, main.o 
+	$(CC) $(CXXFLAGS) Player.o main.o -o akash $(MEMORY_SAFE_FLAGS)   # links object code files into an executable called "sample"
+
+run:
+	./akash
+
+clean:
+	rm -r *.o
