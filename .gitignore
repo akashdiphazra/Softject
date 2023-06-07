@@ -24,6 +24,5 @@ virtualmachine
 $RECYCLE.BIN/
 .TemporaryItems
 thumbs.db
-.clangd
 compile_flags.txt
 Thumbs.db

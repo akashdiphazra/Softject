@@ -1,0 +1,5 @@
+# https://github.com/llvm/clangd-www/blob/main/faq.md
+CompileFlags:
+  # Treat code as C++, use C++17 standard, enable more warnings.
+  Add: [-std=c11, -std=c++17, -std=gnu++17, -Wall, -Wextra, -pedantic, -Wshadow, -Wnon-virtual-dtor, -Wimplicit-fallthrough, -Wlifetime, -Wno-unknown-pragmas]
+
