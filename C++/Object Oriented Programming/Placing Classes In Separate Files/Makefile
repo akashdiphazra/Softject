@@ -1,5 +1,5 @@
 CC=g++ 
-CXXFLAGS= -std=c++20 -pedantic -ggdb
+CXXFLAGS= -Wall -Wextra -Werror -std=c++20 -pedantic -ggdb
 EXEC = akash
 OBJS = Player.o main.o # List of object files needed to
 MEMORY_SAFE_FLAGS= -fsanitize=address -fno-omit-frame-pointer
