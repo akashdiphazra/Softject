@@ -1,0 +1,146 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "generator": "Ninja Multi-Config",
+      "warnings": {
+        "unusedCli": false
+      },
+      "displayName": "Base Config Using CPM Package Manger",
+      "description": "Base Config Using CPM",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "cmake/CPM.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      }
+    },
+    {
+      "name": "windows-msvc-ninja-debug",
+      "displayName": "Windows MSVC Ninja Debug",
+      "description": "Debug Using Ninja and MSVC Compiler In Windows",
+      "warnings": {
+        "unusedCli": false
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "cmake/CPM.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Debug",
+      "description": "Debug Using GCC and Ninja In Linux",
+      "warnings": {
+        "unusedCli": false
+      },
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "cmake/CPM.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Linux"
+          ]
+        }
+      }
+    },
+    {
+      "name": "visual-studio-debug",
+      "displayName": "Visual Studio debug",
+      "description": "Debug Using Only Windows MSVC Compiler In Visual Studio",
+      "warnings": {
+        "unusedCli": false
+      },
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "cmake/CPM.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_COLOR_DIAGNOSTICS": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "displayName": "Build (Debug)",
+      "description": "Debug Using GCC and Ninja In Linux",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-ninja-debug",
+      "configurePreset": "windows-msvc-ninja-debug",
+      "displayName": "Build (Debug)",
+      "description": "Debug Using Ninja and MSVC Compiler In Windows",
+      "configuration": "Debug"
+    },
+    {
+      "name": "visual-studio-debug",
+      "configurePreset": "visual-studio-debug",
+      "displayName": "Build (Debug)",
+      "description": "Debug Using Only Windows MSVC Compiler In Visual Studio",
+      "configuration": "Debug"
+    }
+  ]
+}
